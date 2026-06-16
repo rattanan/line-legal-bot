@@ -9,8 +9,8 @@ model: "gemini-1.5-flash",
 });
 
 export async function askGemini(
-prompt: string
-): Promise {
+  prompt: string
+): Promise<string> {
 try {
 const result =
 await model.generateContent(prompt);
