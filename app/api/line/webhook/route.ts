@@ -1,5 +1,4 @@
 import { askGemini } from "@/lib/gemini";
-import { getFAQData } from "@/lib/google-sheet";
 import { replyMessage } from "@/lib/line";
 
 export async function POST(req: Request) {
@@ -22,76 +21,37 @@ if (event.message.type !== "text") {
 
 const question = event.message.text;
 
-let knowledge = "";
-
-try {
-  const faq = await getFAQData();
-
-  knowledge = faq
-    .map((row) => `${row[0]} : ${row[1]}`)
-    .join("\n");
-} catch (error) {
-  console.error("Google Sheet Error:", error);
-}
-
 const prompt = `
 
 คุณเป็นผู้ช่วยกฎหมายไทยเบื้องต้น
 
-กฎการตอบ:
+กฎ:
 
 ตอบเป็นภาษาไทย
-ใช้ข้อมูลอ้างอิงเป็นหลัก
-หากไม่พบข้อมูลที่เกี่ยวข้อง ให้ตอบว่า "ขออภัยค่ะ ขณะนี้ยังไม่มีข้อมูลในฐานความรู้เกี่ยวกับเรื่องนี้"
-ห้ามแต่งข้อมูลกฎหมายขึ้นเอง
-หากไม่มั่นใจให้ตอบว่าไม่ทราบ
-ตอบไม่เกิน 500 ตัวอักษร
-
-ข้อมูลอ้างอิง:
-${knowledge}
+ตอบขี้เล่น คุยสนุก มีอิโมจิได้บ้าง
+หากไม่ทราบให้บอกว่าไม่ทราบ
 
 คำถาม:
 ${question}
 `;
 
-let answer = "";
-
-try {
-  answer = await askGemini(prompt);
-} catch (error) {
-  console.error("Gemini Error:", error);
-}
-
-const finalAnswer =
-  answer?.trim()
-    ? answer
-    : "ขออภัยค่ะ ขณะนี้ยังไม่มีข้อมูลในฐานความรู้เกี่ยวกับเรื่องนี้";
+const answer =
+  await askGemini(prompt);
 
 await replyMessage(
   event.replyToken,
-  `${finalAnswer}
-
-⚠️ ข้อมูลนี้เป็นเพียงข้อมูลกฎหมายเบื้องต้น ไม่ใช่คำปรึกษาทางกฎหมาย`
+  answer?.trim()
+    ? answer
+    : "Gemini ไม่ได้ส่งคำตอบกลับมา"
 );
 
-return Response.json({ success: true });
+return Response.json({
+  success: true,
+});
 
 } catch (error) {
 
-console.error("Webhook Error:", error);
-
-try {
-  const body = await req.json();
-
-  const event = body.events?.[0];
-
-  if (event?.replyToken) {
-    await replyMessage(
-      event.replyToken,
-      "ขออภัยค่ะ ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง"
-    );
-  }
-} catch {}
+console.error(error);
 
 return Response.json({
   success: false,
