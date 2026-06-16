@@ -1,16 +1,12 @@
-export async function GET() {
-    return Response.json({
-    status: "ok",
+export async function POST() {
+    return new Response("LINE OK", {
+    status: 200,
     });
     }
     
-    export async function POST(req: Request) {
-    const body = await req.json();
-    
-    console.log("LINE Verify:", body);
-    
-    return Response.json({
-    ok: true,
+    export async function GET() {
+    return new Response("GET OK", {
+    status: 200,
     });
     }
     
