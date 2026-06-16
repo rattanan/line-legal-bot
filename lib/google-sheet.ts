@@ -16,11 +16,9 @@ scopes: [
 });
 
 export async function getFAQData() {
-const client = await auth.getClient();
-
 const sheets = google.sheets({
 version: "v4",
-auth: client,
+auth,
 });
 
 const response =
