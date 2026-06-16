@@ -10,17 +10,15 @@ model: "gemini-1.5-flash",
 
 export async function askGemini(
 prompt: string
-): Promise<string> {
+): Promise {
 try {
 const result =
 await model.generateContent(prompt);
 
-```
 const text =
   result.response.text();
 
 return text || "";
-```
 
 } catch (error) {
 console.error(
@@ -28,9 +26,7 @@ console.error(
 error
 );
 
-```
 return "";
-```
 
 }
 }
