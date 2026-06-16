@@ -1,4 +1,10 @@
-export async function POST(req: Request) {
+export async function GET() {
+    return Response.json({
+    status: "ok",
+    });
+    }
+    
+    export async function POST(req: Request) {
     const body = await req.json();
     
     console.log("LINE Verify:", body);
@@ -7,3 +13,4 @@ export async function POST(req: Request) {
     ok: true,
     });
     }
+    
