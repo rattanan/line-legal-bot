@@ -3,56 +3,99 @@ import { getFAQData } from "@/lib/google-sheet";
 import { replyMessage } from "@/lib/line";
 
 export async function POST(req: Request) {
-  const body = await req.json();
+try {
+const body = await req.json();
 
-  const event = body.events?.[0];
+const event = body.events?.[0];
 
-  if (!event) {
-    return Response.json({ ok: true });
-  }
+if (!event) {
+  return Response.json({ ok: true });
+}
 
-  if (event.type !== "message") {
-    return Response.json({ ok: true });
-  }
+if (event.type !== "message") {
+  return Response.json({ ok: true });
+}
 
-  if (event.message.type !== "text") {
-    return Response.json({ ok: true });
-  }
+if (event.message.type !== "text") {
+  return Response.json({ ok: true });
+}
 
-  const question = event.message.text;
+const question = event.message.text;
 
+let knowledge = "";
+
+try {
   const faq = await getFAQData();
 
-  const knowledge = faq
+  knowledge = faq
     .map((row) => `${row[0]} : ${row[1]}`)
     .join("\n");
+} catch (error) {
+  console.error("Google Sheet Error:", error);
+}
 
-  const prompt = `
+const prompt = `
+
 คุณเป็นผู้ช่วยกฎหมายไทยเบื้องต้น
 
 กฎการตอบ:
-- ตอบจากข้อมูลอ้างอิงก่อน
-- หากไม่พบข้อมูลที่เกี่ยวข้องในข้อมูลอ้างอิง ให้ตอบว่า
-  "ขออภัยค่ะ ขณะนี้ยังไม่มีข้อมูลในฐานความรู้เกี่ยวกับเรื่องนี้"
-- ห้ามเดาหรือแต่งข้อมูลกฎหมายขึ้นเอง
-- หากไม่มั่นใจให้แจ้งว่าไม่ทราบ
-- ตอบเป็นภาษาไทยสุภาพ
+
+ตอบเป็นภาษาไทย
+ใช้ข้อมูลอ้างอิงเป็นหลัก
+หากไม่พบข้อมูลที่เกี่ยวข้อง ให้ตอบว่า "ขออภัยค่ะ ขณะนี้ยังไม่มีข้อมูลในฐานความรู้เกี่ยวกับเรื่องนี้"
+ห้ามแต่งข้อมูลกฎหมายขึ้นเอง
+หากไม่มั่นใจให้ตอบว่าไม่ทราบ
+ตอบไม่เกิน 500 ตัวอักษร
 
 ข้อมูลอ้างอิง:
-
 ${knowledge}
 
 คำถาม:
 ${question}
 `;
 
-  const answer = await askGemini(prompt);
+let answer = "";
 
-  await replyMessage(
-    event.replyToken,
-    answer +
-      "\n\n⚠️ ข้อมูลนี้เป็นเพียงข้อมูลกฎหมายเบื้องต้น ไม่ใช่คำปรึกษาทางกฎหมาย"
-  );
+try {
+  answer = await askGemini(prompt);
+} catch (error) {
+  console.error("Gemini Error:", error);
+}
 
-  return Response.json({ success: true });
+const finalAnswer =
+  answer?.trim()
+    ? answer
+    : "ขออภัยค่ะ ขณะนี้ยังไม่มีข้อมูลในฐานความรู้เกี่ยวกับเรื่องนี้";
+
+await replyMessage(
+  event.replyToken,
+  `${finalAnswer}
+
+⚠️ ข้อมูลนี้เป็นเพียงข้อมูลกฎหมายเบื้องต้น ไม่ใช่คำปรึกษาทางกฎหมาย`
+);
+
+return Response.json({ success: true });
+
+} catch (error) {
+
+console.error("Webhook Error:", error);
+
+try {
+  const body = await req.json();
+
+  const event = body.events?.[0];
+
+  if (event?.replyToken) {
+    await replyMessage(
+      event.replyToken,
+      "ขออภัยค่ะ ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง"
+    );
+  }
+} catch {}
+
+return Response.json({
+  success: false,
+});
+
+}
 }
