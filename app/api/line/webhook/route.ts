@@ -1,27 +1,52 @@
 import { askGemini } from "@/lib/gemini";
 import { replyMessage } from "@/lib/line";
 
+const LINE_TEXT_LIMIT = 5000;
+const GEMINI_FALLBACK_MESSAGE =
+  "ขออภัยครับ ตอนนี้ระบบตอบคำถามยังมีปัญหาอยู่ กรุณาลองใหม่อีกครั้งครับ";
+
+type LineWebhookEvent = {
+  type: string;
+  replyToken: string;
+  message?: {
+    type: string;
+    text?: string;
+  };
+};
+
+function toLineText(text: string) {
+  const trimmed = text.trim();
+
+  if (trimmed.length <= LINE_TEXT_LIMIT) {
+    return trimmed;
+  }
+
+  return `${trimmed.slice(0, LINE_TEXT_LIMIT - 24)}\n\n(คำตอบยาวเกินไปเลยตัดจบไว้ตรงนี้)`;
+}
+
 export async function POST(req: Request) {
-try {
-const body = await req.json();
+  try {
+    const body = await req.json();
 
-const event = body.events?.[0];
+    const events: LineWebhookEvent[] = body.events || [];
 
-if (!event) {
-  return Response.json({ ok: true });
-}
+    if (!events.length) {
+      return Response.json({ ok: true });
+    }
 
-if (event.type !== "message") {
-  return Response.json({ ok: true });
-}
+    await Promise.all(
+      events.map(async (event) => {
+        if (event.type !== "message") {
+          return;
+        }
 
-if (event.message.type !== "text") {
-  return Response.json({ ok: true });
-}
+        if (event.message?.type !== "text" || !event.message.text) {
+          return;
+        }
 
-const question = event.message.text;
+        const question = event.message.text;
 
-const prompt = `
+        const prompt = `
 
 คุณเป็นผู้ช่วยกฎหมายไทยเบื้องต้น
 
@@ -35,27 +60,29 @@ const prompt = `
 ${question}
 `;
 
-const answer =
-  await askGemini(prompt);
+        let replyText = GEMINI_FALLBACK_MESSAGE;
 
-await replyMessage(
-  event.replyToken,
-  answer?.trim()
-    ? answer
-    : "Gemini ไม่ได้ส่งคำตอบกลับมา"
-);
+        try {
+          const answer = await askGemini(prompt);
+          replyText = answer
+            ? toLineText(answer)
+            : "ขออภัยครับ ตอนนี้ Gemini ยังไม่ส่งคำตอบกลับมา ลองถามใหม่อีกครั้งได้ไหมครับ";
+        } catch (error) {
+          console.error("Gemini API Error:", error);
+        }
 
-return Response.json({
-  success: true,
-});
+        await replyMessage(event.replyToken, replyText);
+      })
+    );
 
-} catch (error) {
+    return Response.json({
+      success: true,
+    });
+  } catch (error) {
+    console.error(error);
 
-console.error(error);
-
-return Response.json({
-  success: false,
-});
-
-}
+    return Response.json({
+      success: false,
+    });
+  }
 }

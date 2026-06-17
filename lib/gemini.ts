@@ -1,32 +1,25 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenerativeAI(
-process.env.GEMINI_API_KEY!
-);
+const apiKey = process.env.GEMINI_API_KEY;
+const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+let ai: GoogleGenAI | null = null;
 
-const model = genAI.getGenerativeModel({
-model: "gemini-1.5-flash",
-});
+function getClient() {
+  if (!apiKey) {
+    throw new Error("Missing GEMINI_API_KEY environment variable");
+  }
+
+  ai ??= new GoogleGenAI({ apiKey });
+  return ai;
+}
 
 export async function askGemini(
   prompt: string
 ): Promise<string> {
-try {
-const result =
-await model.generateContent(prompt);
+  const response = await getClient().models.generateContent({
+    model,
+    contents: prompt,
+  });
 
-const text =
-  result.response.text();
-
-return text || "";
-
-} catch (error) {
-console.error(
-"Gemini API Error:",
-error
-);
-
-return "";
-
-}
+  return response.text?.trim() || "";
 }
