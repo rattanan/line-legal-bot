@@ -13,7 +13,7 @@ import { generateAnswer } from "@/lib/bot/answer";
  * Response:
  * {
  *   "reply": "bot answer",
- *   "source": "mysql_faq" | "gemini" | "fallback"
+ *   "source": "mysql_faq" | "ai" | "fallback"
  * }
  */
 export async function POST(req: NextRequest) {

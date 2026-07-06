@@ -1,8 +1,8 @@
-import { askGemini } from "@/lib/gemini";
+import { ai } from "@/lib/ai";
 import { getFAQData, FAQ } from "@/lib/faq";
 
-const GEMINI_FALLBACK_MESSAGE =
-  "ขออภัยครับ ตอนนี้ระบบตอบคำถามยังมีปัญหาอยู่ กรุณาลองใหม่อีกครั้งครับ";
+const FALLBACK_MESSAGE =
+  "ขออภัย ระบบ AI ไม่สามารถให้บริการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง";
 
 /**
  * Search FAQ from MySQL database for matching question
@@ -12,7 +12,7 @@ const GEMINI_FALLBACK_MESSAGE =
 async function searchFAQ(question: string): Promise<FAQ | null> {
   try {
     const faqData = await getFAQData();
-    
+
     // Simple exact or partial match search
     const matchedFAQ = faqData.find((faq) => {
       const questionLower = question.toLowerCase().trim();
@@ -35,15 +35,15 @@ async function searchFAQ(question: string): Promise<FAQ | null> {
  * Generate answer using the bot logic:
  * 1. Search FAQ from MySQL first
  * 2. If matching FAQ is found, return FAQ answer
- * 3. If no FAQ match, call Gemini
- * 4. If Gemini fails, return fallback message
- * 
+ * 3. If no FAQ match, call AI provider (with automatic failover)
+ * 4. If AI fails, return fallback message
+ *
  * @param question - User's question
  * @returns Object containing reply text and source
  */
 export async function generateAnswer(question: string): Promise<{
   reply: string;
-  source: "mysql_faq" | "gemini" | "fallback";
+  source: "mysql_faq" | "ai" | "fallback";
 }> {
   // Step 1: Search FAQ from MySQL
   const matchedFAQ = await searchFAQ(question);
@@ -55,42 +55,43 @@ export async function generateAnswer(question: string): Promise<{
     };
   }
 
-  // Step 2: No FAQ match, call Gemini
+  // Step 2: No FAQ match, call AI provider with automatic failover
   try {
     const prompt = buildPrompt(question);
-    const answer = await askGemini(prompt);
+    const messages = [{ role: "user" as const, content: prompt }];
+    const answer = await ai.chat(messages);
 
     if (answer) {
       return {
         reply: answer,
-        source: "gemini",
+        source: "ai",
       };
     }
 
     return {
-      reply: GEMINI_FALLBACK_MESSAGE,
+      reply: FALLBACK_MESSAGE,
       source: "fallback",
     };
   } catch (error) {
-    console.error("Gemini API Error:", error);
+    console.error("AI Provider Error:", error);
 
     return {
-      reply: GEMINI_FALLBACK_MESSAGE,
+      reply: FALLBACK_MESSAGE,
       source: "fallback",
     };
   }
 }
 
 /**
- * Build prompt for Gemini with FAQ context
+ * Build prompt for AI with FAQ context
  * @param question - User's question
  * @returns Formatted prompt string
  */
 function buildPrompt(question: string): string {
   // Fetch FAQ data from MySQL for context
   let faqContext = "";
-  
-  // We don't need to pass all FAQs to Gemini, just use it as context
+
+  // We don't need to pass all FAQs to AI, just use it as context
   // The searchFAQ function already handles finding the best match
   // This prompt is for when no direct FAQ match is found
 
@@ -107,6 +108,7 @@ function buildPrompt(question: string): string {
 - ตอบเป็นภาษาไทย
 - ไม่ตอบยาวเกินไป ให้สั้นกระชับ เข้าใจง่าย
 - น้ำเสียงเป็นมิตร เข้าใจง่าย ให้กำลังใจ แต่ไม่ขายฝัน
+- ให้รับฟัง ถามคำถามกลับอย่างสนใจ และไม่ด่วนสรุป ให้แนะนำแนวทางทีละข้อ
 - ตอบแบบคุยกับคนจริง ๆ ไม่เป็นทางการเกินไป
 - ใช้อิโมจิได้เล็กน้อย แต่ไม่เยอะ
 - ห้ามบอกว่าปัญหาหนี้จะหายแน่นอน
