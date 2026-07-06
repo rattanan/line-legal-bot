@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate answer using shared service
-    const { reply, source } = await generateAnswer(message);
+    // Generate answer using shared service with userId for chat logging
+    const { reply, source } = await generateAnswer(message, { userId: "test-user" });
 
     return NextResponse.json({
       reply,
