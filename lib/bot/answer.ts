@@ -1,5 +1,6 @@
 import { ai } from "@/lib/ai";
 import { getFAQData, FAQ } from "@/lib/faq";
+import { saveChatLog } from "@/lib/chat-log";
 
 const FALLBACK_MESSAGE =
   "ขออภัย ระบบ AI ไม่สามารถให้บริการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง";
@@ -31,6 +32,10 @@ async function searchFAQ(question: string): Promise<FAQ | null> {
   }
 }
 
+interface GenerateAnswerOptions {
+  userId?: string;
+}
+
 /**
  * Generate answer using the bot logic:
  * 1. Search FAQ from MySQL first
@@ -39,9 +44,13 @@ async function searchFAQ(question: string): Promise<FAQ | null> {
  * 4. If AI fails, return fallback message
  *
  * @param question - User's question
+ * @param options - Optional settings (userId for chat logging)
  * @returns Object containing reply text and source
  */
-export async function generateAnswer(question: string): Promise<{
+export async function generateAnswer(
+  question: string,
+  options: GenerateAnswerOptions = {}
+): Promise<{
   reply: string;
   source: "mysql_faq" | "ai" | "fallback";
 }> {
@@ -49,6 +58,16 @@ export async function generateAnswer(question: string): Promise<{
   const matchedFAQ = await searchFAQ(question);
 
   if (matchedFAQ) {
+    // Save chat log
+    if (options.userId) {
+      saveChatLog({
+        userId: options.userId,
+        question,
+        answer: matchedFAQ.answer,
+        source: "mysql_faq",
+      });
+    }
+
     return {
       reply: matchedFAQ.answer,
       source: "mysql_faq",
@@ -62,10 +81,30 @@ export async function generateAnswer(question: string): Promise<{
     const answer = await ai.chat(messages);
 
     if (answer) {
+      // Save chat log
+      if (options.userId) {
+        saveChatLog({
+          userId: options.userId,
+          question,
+          answer,
+          source: "ai",
+        });
+      }
+
       return {
         reply: answer,
         source: "ai",
       };
+    }
+
+    // Save fallback chat log
+    if (options.userId) {
+      saveChatLog({
+        userId: options.userId,
+        question,
+        answer: FALLBACK_MESSAGE,
+        source: "fallback",
+      });
     }
 
     return {
@@ -74,6 +113,16 @@ export async function generateAnswer(question: string): Promise<{
     };
   } catch (error) {
     console.error("AI Provider Error:", error);
+
+    // Save fallback chat log on error
+    if (options.userId) {
+      saveChatLog({
+        userId: options.userId,
+        question,
+        answer: FALLBACK_MESSAGE,
+        source: "fallback",
+      });
+    }
 
     return {
       reply: FALLBACK_MESSAGE,
@@ -108,6 +157,7 @@ function buildPrompt(question: string): string {
 - ตอบเป็นภาษาไทย
 - ไม่ตอบยาวเกินไป ให้สั้นกระชับ เข้าใจง่าย
 - น้ำเสียงเป็นมิตร เข้าใจง่าย ให้กำลังใจ แต่ไม่ขายฝัน
+- ให้รับฟัง ถามคำถามกลับอย่างสนใจ และไม่ด่วนสรุป ให้แนะนำแนวทางทีละข้อ
 - ตอบแบบคุยกับคนจริง ๆ ไม่เป็นทางการเกินไป
 - ใช้อิโมจิได้เล็กน้อย แต่ไม่เยอะ
 - ห้ามบอกว่าปัญหาหนี้จะหายแน่นอน
