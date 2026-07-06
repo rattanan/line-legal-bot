@@ -5,6 +5,10 @@ import { saveChatLog } from "@/lib/chat-log";
 const FALLBACK_MESSAGE =
   "ขออภัย ระบบ AI ไม่สามารถให้บริการได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง";
 
+// Error message returned by AI provider when it fails
+const AI_ERROR_MESSAGE =
+  "ขออภัย ระบบ AI ยังไม่สามารถตอบได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง";
+
 /**
  * Search FAQ from MySQL database for matching question
  * @param question - User's question
@@ -74,14 +78,32 @@ export async function generateAnswer(
     };
   }
 
-  // Step 2: No FAQ match, call AI provider with automatic failover
+  // Step 2: No FAQ match, call AI provider
   try {
     const prompt = buildPrompt(question);
     const messages = [{ role: "user" as const, content: prompt }];
     const answer = await ai.chat(messages);
 
+    // Check if the response is the AI error message
+    if (answer === AI_ERROR_MESSAGE) {
+      // AI provider failed, save with fallback source
+      if (options.userId) {
+        saveChatLog({
+          userId: options.userId,
+          question,
+          answer: FALLBACK_MESSAGE,
+          source: "fallback",
+        });
+      }
+
+      return {
+        reply: FALLBACK_MESSAGE,
+        source: "fallback",
+      };
+    }
+
     if (answer) {
-      // Save chat log
+      // Save chat log for successful AI response
       if (options.userId) {
         saveChatLog({
           userId: options.userId,

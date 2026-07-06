@@ -61,8 +61,8 @@ class ProviderChat implements AIChat {
       console.log(`Prompt length : ${promptLength} chars`);
       console.error(`[AI Provider] ${this.provider.name} failed:`, error);
 
-      // Return the standard error message
-      return "ขออภัย ระบบ AI ยังไม่สามารถตอบได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง";
+      // Re-throw the error so the caller can handle it
+      throw error;
     }
   }
 }
