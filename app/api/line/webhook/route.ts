@@ -1,9 +1,7 @@
-import { askGemini } from "@/lib/gemini";
 import { replyMessage } from "@/lib/line";
+import { generateAnswer } from "@/lib/bot/answer";
 
 const LINE_TEXT_LIMIT = 5000;
-const GEMINI_FALLBACK_MESSAGE =
-  "ขออภัยครับ ตอนนี้ระบบตอบคำถามยังมีปัญหาอยู่ กรุณาลองใหม่อีกครั้งครับ";
 
 type LineWebhookEvent = {
   type: string;
@@ -46,30 +44,12 @@ export async function POST(req: Request) {
 
         const question = event.message.text;
 
-        const prompt = `
+        const { reply, source } = await generateAnswer(question);
 
-คุณเป็นผู้ช่วยกฎหมายไทยเบื้องต้น
+        // Log the source for debugging
+        console.log(`[LINE Webhook] Question: "${question}" -> Source: ${source}`);
 
-กฎ:
-
-ตอบเป็นภาษาไทย
-ตอบขี้เล่น คุยสนุก มีอิโมจิได้บ้าง
-หากไม่ทราบให้บอกว่าไม่ทราบ
-
-คำถาม:
-${question}
-`;
-
-        let replyText = GEMINI_FALLBACK_MESSAGE;
-
-        try {
-          const answer = await askGemini(prompt);
-          replyText = answer
-            ? toLineText(answer)
-            : "ขออภัยครับ ตอนนี้ Gemini ยังไม่ส่งคำตอบกลับมา ลองถามใหม่อีกครั้งได้ไหมครับ";
-        } catch (error) {
-          console.error("Gemini API Error:", error);
-        }
+        const replyText = toLineText(reply);
 
         await replyMessage(event.replyToken, replyText);
       })
