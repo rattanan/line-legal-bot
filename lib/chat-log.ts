@@ -1,4 +1,5 @@
 import { getMySQLPool } from "@/lib/mysql";
+import { QueryResult } from "@/lib/mysql";
 
 interface ChatLog {
   userId: string;
@@ -12,16 +13,23 @@ interface ChatLog {
  * @param log - Chat log entry
  */
 export async function saveChatLog(log: ChatLog): Promise<void> {
+  const pool = getMySQLPool();
+  let connection;
+  
   try {
+    connection = await pool.getConnection();
     const query = `
       INSERT INTO chat_log (user_id, user_message, bot_reply, answer_source)
       VALUES (?, ?, ?, ?)
     `;
-
-    await getMySQLPool().execute(query, [log.userId, log.question, log.answer, log.source]);
+    await connection.execute(query, [log.userId, log.question, log.answer, log.source]);
   } catch (error) {
     console.error("Error saving chat log:", error);
     // Don't throw - chat logging should not break the bot
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 }
 
@@ -35,7 +43,11 @@ export async function getChatHistory(
   userId: string,
   limit: number = 20
 ): Promise<ChatLog[]> {
+  const pool = getMySQLPool();
+  let connection;
+  
   try {
+    connection = await pool.getConnection();
     const query = `
       SELECT user_id, user_message as question, bot_reply as answer, answer_source as source
       FROM chat_log
@@ -43,11 +55,15 @@ export async function getChatHistory(
       ORDER BY created_at DESC
       LIMIT ?
     `;
-
-    const [rows] = await getMySQLPool().execute(query, [userId, limit]);
+    
+    const [rows] = await connection.execute(query, [userId, limit]);
     return rows as ChatLog[];
   } catch (error) {
     console.error("Error fetching chat history:", error);
     return [];
+  } finally {
+    if (connection) {
+      connection.release();
+    }
   }
 }

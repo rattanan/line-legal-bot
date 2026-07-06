@@ -69,7 +69,7 @@ export async function generateAnswer(
         question,
         answer: matchedFAQ.answer,
         source: "mysql_faq",
-      });
+      }).catch((err) => console.error("Failed to save chat log:", err));
     }
 
     return {
@@ -86,15 +86,15 @@ export async function generateAnswer(
 
     // Check if the response is the AI error message
     if (answer === AI_ERROR_MESSAGE) {
-      // AI provider failed, save with fallback source
-      if (options.userId) {
-        saveChatLog({
-          userId: options.userId,
-          question,
-          answer: FALLBACK_MESSAGE,
-          source: "fallback",
-        });
-      }
+       // AI provider failed, save with fallback source
+       if (options.userId) {
+         saveChatLog({
+           userId: options.userId,
+           question,
+           answer: FALLBACK_MESSAGE,
+           source: "fallback",
+         }).catch((err) => console.error("Failed to save chat log:", err));
+       }
 
       return {
         reply: FALLBACK_MESSAGE,
@@ -103,15 +103,15 @@ export async function generateAnswer(
     }
 
     if (answer) {
-      // Save chat log for successful AI response
-      if (options.userId) {
-        saveChatLog({
-          userId: options.userId,
-          question,
-          answer,
-          source: "ai",
-        });
-      }
+       // Save chat log for successful AI response
+       if (options.userId) {
+         saveChatLog({
+           userId: options.userId,
+           question,
+           answer,
+           source: "ai",
+         }).catch((err) => console.error("Failed to save chat log:", err));
+       }
 
       return {
         reply: answer,
@@ -119,15 +119,15 @@ export async function generateAnswer(
       };
     }
 
-    // Save fallback chat log
-    if (options.userId) {
-      saveChatLog({
-        userId: options.userId,
-        question,
-        answer: FALLBACK_MESSAGE,
-        source: "fallback",
-      });
-    }
+     // Save fallback chat log
+     if (options.userId) {
+       saveChatLog({
+         userId: options.userId,
+         question,
+         answer: FALLBACK_MESSAGE,
+         source: "fallback",
+       }).catch((err) => console.error("Failed to save chat log:", err));
+     }
 
     return {
       reply: FALLBACK_MESSAGE,
@@ -136,15 +136,15 @@ export async function generateAnswer(
   } catch (error) {
     console.error("AI Provider Error:", error);
 
-    // Save fallback chat log on error
-    if (options.userId) {
-      saveChatLog({
-        userId: options.userId,
-        question,
-        answer: FALLBACK_MESSAGE,
-        source: "fallback",
-      });
-    }
+     // Save fallback chat log on error
+     if (options.userId) {
+       saveChatLog({
+         userId: options.userId,
+         question,
+         answer: FALLBACK_MESSAGE,
+         source: "fallback",
+       }).catch((err) => console.error("Failed to save chat log:", err));
+     }
 
     return {
       reply: FALLBACK_MESSAGE,
