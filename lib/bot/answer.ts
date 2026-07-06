@@ -132,18 +132,11 @@ export async function generateAnswer(
 }
 
 /**
- * Build prompt for AI with FAQ context
+ * Build prompt for AI
  * @param question - User's question
  * @returns Formatted prompt string
  */
 function buildPrompt(question: string): string {
-  // Fetch FAQ data from MySQL for context
-  let faqContext = "";
-
-  // We don't need to pass all FAQs to AI, just use it as context
-  // The searchFAQ function already handles finding the best match
-  // This prompt is for when no direct FAQ match is found
-
   return `
 คุณเป็นผู้ชาย เป็นผู้ช่วยที่ปรึกษาทางการเงินเบื้องต้น และผู้ช่วยด้านการไกล่เกลี่ยหนี้
 
@@ -170,8 +163,6 @@ function buildPrompt(question: string): string {
 - ชวนแบบสุภาพ ไม่ยัดเยียด
 - อธิบายประโยชน์สั้น ๆ เช่น ระบบช่วยเตรียมข้อมูล นัดหมายผู้ไกล่เกลี่ย และช่วยหาทางออกที่เป็นธรรม
 - ใส่ลิงก์นี้เท่านั้น: https://ai-mediation.rattanan.dev
-${faqContext ? `\n\nข้อมูล FAQ (สำหรับอ้างอิง):\n${faqContext}` : ""}
-
 คำถาม:
 ${question}
 `;

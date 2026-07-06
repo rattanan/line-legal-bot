@@ -74,6 +74,78 @@ The FAQ data is accessible via the `lib/faq.ts` library which provides:
 - `updateFAQ(id, question, answer)` - Update existing FAQ
 - `deleteFAQ(id)` - Delete FAQ
 
+## AI Provider Configuration
+
+This application supports multiple AI providers. You can switch between providers by changing a single environment variable.
+
+### Supported Providers
+
+| Provider | Description |
+|----------|-------------|
+| `gemini` | Google GenAI (Gemini 2.5 Flash) |
+| `qwen` | Qwen (OpenAI-compatible API) |
+
+### How to Switch Providers
+
+1. Edit your `.env` file
+2. Set the `AI_PROVIDER` variable to your desired provider:
+
+```bash
+# Use Gemini
+AI_PROVIDER=gemini
+
+# Use Qwen
+AI_PROVIDER=qwen
+```
+
+3. Restart your application
+
+### Provider Configuration
+
+#### Gemini
+
+```bash
+GEMINI_API_KEY=your_api_key
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+#### Qwen
+
+```bash
+QWEN_API_URL=http://1.179.140.78:8001/v1
+QWEN_API_KEY=your_api_key
+QWEN_MODEL=Qwen/Qwen3.6-27B
+```
+
+### Logging
+
+When a request is made, the following information is logged:
+
+```
+AI Provider : Gemini
+Model : gemini-2.5-flash
+Response : 1380 ms
+Prompt length : 1234 chars
+```
+
+### Error Handling
+
+If the selected provider fails, the application returns:
+
+```
+ขออภัย ระบบ AI ยังไม่สามารถตอบได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง
+```
+
+No automatic failover or retry is performed. The selected provider is used exclusively.
+
+### Adding New Providers
+
+To add a new provider:
+
+1. Create a new file `lib/ai/<provider>.ts`
+2. Implement the `AIProvider` interface from `lib/ai/provider.ts`
+3. Update `createProvider()` in `lib/ai/provider.ts` to handle the new provider
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

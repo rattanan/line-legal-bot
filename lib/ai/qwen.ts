@@ -31,6 +31,7 @@ export class QwenProvider implements AIProvider {
 
   async chat(messages: Array<{ role: "user" | "assistant" | "system"; content: string }>): Promise<string> {
     const startTime = Date.now();
+    const promptLength = JSON.stringify(messages).length;
 
     try {
       const response = await this.fetchWithTimeout(
@@ -52,7 +53,10 @@ export class QwenProvider implements AIProvider {
       );
 
       const responseTime = Date.now() - startTime;
-      console.log(`[AI Provider] Qwen - Response Time: ${responseTime} ms`);
+      console.log(`AI Provider : ${this.name}`);
+      console.log(`Model : ${this.model}`);
+      console.log(`Response : ${responseTime} ms`);
+      console.log(`Prompt length : ${promptLength} chars`);
 
       const data = await response.json();
 
@@ -68,40 +72,44 @@ export class QwenProvider implements AIProvider {
 
       // Log token usage if available
       if (data.usage) {
-        console.log(`[AI Provider] Qwen - Token Usage: ${JSON.stringify(data.usage)}`);
+        console.log(`[AI Provider] ${this.name} - Token Usage: ${JSON.stringify(data.usage)}`);
       }
 
       return message.content.trim();
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
+      console.log(`AI Provider : ${this.name}`);
+      console.log(`Model : ${this.model}`);
+      console.log(`Response : ${responseTime} ms`);
+      console.log(`Prompt length : ${promptLength} chars`);
 
       if (error instanceof AIProviderTimeoutError) {
-        console.error(`[AI Provider] Qwen FAILED - Reason: Timeout (${responseTime} ms)`);
+        console.error(`[AI Provider] ${this.name} FAILED - Reason: Timeout`);
         throw error;
       }
 
       if (error instanceof AIProviderConnectionError) {
-        console.error(`[AI Provider] Qwen FAILED - Reason: Connection Error (${responseTime} ms)`);
+        console.error(`[AI Provider] ${this.name} FAILED - Reason: Connection Error`);
         throw error;
       }
 
       if (error instanceof AIProviderHTTPError) {
-        console.error(`[AI Provider] Qwen FAILED - Reason: HTTP ${error.statusCode} (${responseTime} ms)`);
+        console.error(`[AI Provider] ${this.name} FAILED - Reason: HTTP ${error.statusCode}`);
         throw error;
       }
 
       if (error instanceof AIProviderInvalidResponseError) {
-        console.error(`[AI Provider] Qwen FAILED - Reason: Invalid Response (${responseTime} ms)`);
+        console.error(`[AI Provider] ${this.name} FAILED - Reason: Invalid Response`);
         throw error;
       }
 
       if (error instanceof Error) {
-        console.error(`[AI Provider] Qwen FAILED - Reason: ${error.message} (${responseTime} ms)`);
+        console.error(`[AI Provider] ${this.name} FAILED - Reason: ${error.message}`);
         throw new AIProviderConnectionError(this.name);
       }
 
-      console.error(`[AI Provider] Qwen FAILED - Unknown error (${responseTime} ms)`);
+      console.error(`[AI Provider] ${this.name} FAILED - Unknown error`);
       throw new AIProviderConnectionError(this.name);
     }
   }

@@ -77,3 +77,42 @@ export class AIProviderInvalidResponseError extends AIProviderError {
     super(message, provider, "INVALID_RESPONSE");
   }
 }
+
+/**
+ * Create an AI provider instance based on the provider name
+ */
+export function createProvider(providerName: AIProviderType): AIProvider {
+  if (providerName === "qwen") {
+    return new (require("./qwen").QwenProvider)();
+  }
+  // Default to Gemini for any other value (including invalid)
+  return new (require("./gemini").GeminiProvider)();
+}
+
+/**
+ * Get the active provider name from environment variable
+ * Returns "gemini" if AI_PROVIDER is invalid or not set
+ */
+export function getActiveProviderName(): AIProviderType {
+  const provider = process.env.AI_PROVIDER?.toLowerCase();
+  
+  if (provider === "qwen") {
+    return "qwen";
+  }
+  
+  if (provider === "gemini") {
+    return "gemini";
+  }
+  
+  // Log warning for invalid value
+  console.warn(`[AI Provider] Invalid AI_PROVIDER="${provider}", defaulting to "gemini"`);
+  return "gemini";
+}
+
+/**
+ * Get the active provider instance
+ */
+export function getActiveProvider(): AIProvider {
+  const providerName = getActiveProviderName();
+  return createProvider(providerName);
+}

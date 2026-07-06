@@ -6,22 +6,18 @@
  * directly call Qwen or Gemini.
  * 
  * Architecture:
- * - provider.ts: Interface and error types
- * - qwen.ts: Primary AI provider (OpenAI-compatible API)
- * - gemini.ts: Fallback AI provider (Google GenAI)
- * - failover.ts: Automatic failover logic
- * - index.ts: Main entry point
+ * - provider.ts: Interface, factory functions, and provider selection
+ * - qwen.ts: Qwen AI provider (OpenAI-compatible API)
+ * - gemini.ts: Gemini AI provider (Google GenAI)
+ * - index.ts: Main entry point with singleton instance
+ * 
+ * Provider Selection:
+ * - Set AI_PROVIDER=gemini or AI_PROVIDER=qwen in environment
+ * - Invalid values default to "gemini" with a warning
+ * - No automatic failover - single provider per runtime
  */
 
-export { type AIProvider, type AIProviderType } from "./provider";
-export { AIProviderError, AIProviderTimeoutError, AIProviderConnectionError, AIProviderHTTPError, AIProviderInvalidResponseError } from "./provider";
-export { QwenProvider } from "./qwen";
-export { GeminiProvider } from "./gemini";
-export { FailoverManager } from "./failover";
-export { getFailoverManager } from "./failover";
-
-// Import the function to use it in this file
-import { getFailoverManager as getManager } from "./failover";
+import { getActiveProvider } from "./provider";
 
 /**
  * AI Chat Interface
@@ -29,7 +25,7 @@ import { getFailoverManager as getManager } from "./failover";
  */
 export interface AIChat {
   /**
-   * Send a chat request to the AI provider with automatic failover
+   * Send a chat request to the AI provider
    * @param messages Array of message objects
    * @returns The AI response text
    */
@@ -37,12 +33,53 @@ export interface AIChat {
 }
 
 /**
+ * Provider-specific chat implementation
+ */
+class ProviderChat implements AIChat {
+  private provider = getActiveProvider();
+
+  async chat(messages: Array<{ role: "user" | "assistant" | "system"; content: string }>): Promise<string> {
+    const startTime = Date.now();
+    const promptLength = JSON.stringify(messages).length;
+
+    try {
+      const response = await this.provider.chat(messages);
+      const responseTime = Date.now() - startTime;
+
+      console.log(`AI Provider : ${this.provider.name}`);
+      console.log(`Model : ${this.provider.model}`);
+      console.log(`Response : ${responseTime} ms`);
+      console.log(`Prompt length : ${promptLength} chars`);
+
+      return response;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+
+      console.log(`AI Provider : ${this.provider.name}`);
+      console.log(`Model : ${this.provider.model}`);
+      console.log(`Response : ${responseTime} ms`);
+      console.log(`Prompt length : ${promptLength} chars`);
+      console.error(`[AI Provider] ${this.provider.name} failed:`, error);
+
+      // Return the standard error message
+      return "ขออภัย ระบบ AI ยังไม่สามารถตอบได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง";
+    }
+  }
+}
+
+/**
  * Get the AI chat instance
  * This is the only way business logic should interact with AI
  */
 export function getAIChat(): AIChat {
-  return getManager();
+  return new ProviderChat();
 }
 
 // Export singleton instance
 export const ai = getAIChat();
+
+// Re-export types and errors for convenience
+export { type AIProvider, type AIProviderType } from "./provider";
+export { AIProviderError, AIProviderTimeoutError, AIProviderConnectionError, AIProviderHTTPError, AIProviderInvalidResponseError } from "./provider";
+export { QwenProvider } from "./qwen";
+export { GeminiProvider } from "./gemini";

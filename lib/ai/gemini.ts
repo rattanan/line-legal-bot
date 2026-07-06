@@ -40,6 +40,7 @@ export class GeminiProvider implements AIProvider {
 
   async chat(messages: Array<{ role: "user" | "assistant" | "system"; content: string }>): Promise<string> {
     const startTime = Date.now();
+    const promptLength = JSON.stringify(messages).length;
 
     try {
       // Convert messages to Gemini format
@@ -59,7 +60,10 @@ export class GeminiProvider implements AIProvider {
       );
 
       const responseTime = Date.now() - startTime;
-      console.log(`[AI Provider] Gemini - Response Time: ${responseTime} ms`);
+      console.log(`AI Provider : ${this.name}`);
+      console.log(`Model : ${this.model}`);
+      console.log(`Response : ${responseTime} ms`);
+      console.log(`Prompt length : ${promptLength} chars`);
 
       const text = response.text?.trim() || "";
 
@@ -71,33 +75,37 @@ export class GeminiProvider implements AIProvider {
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
+      console.log(`AI Provider : ${this.name}`);
+      console.log(`Model : ${this.model}`);
+      console.log(`Response : ${responseTime} ms`);
+      console.log(`Prompt length : ${promptLength} chars`);
 
       if (error instanceof AIProviderTimeoutError) {
-        console.error(`[AI Provider] Gemini FAILED - Reason: Timeout (${responseTime} ms)`);
+        console.error(`[AI Provider] ${this.name} FAILED - Reason: Timeout`);
         throw error;
       }
 
       if (error instanceof AIProviderConnectionError) {
-        console.error(`[AI Provider] Gemini FAILED - Reason: Connection Error (${responseTime} ms)`);
+        console.error(`[AI Provider] ${this.name} FAILED - Reason: Connection Error`);
         throw error;
       }
 
       if (error instanceof AIProviderHTTPError) {
-        console.error(`[AI Provider] Gemini FAILED - Reason: HTTP ${error.statusCode} (${responseTime} ms)`);
+        console.error(`[AI Provider] ${this.name} FAILED - Reason: HTTP ${error.statusCode}`);
         throw error;
       }
 
       if (error instanceof AIProviderInvalidResponseError) {
-        console.error(`[AI Provider] Gemini FAILED - Reason: Invalid Response (${responseTime} ms)`);
+        console.error(`[AI Provider] ${this.name} FAILED - Reason: Invalid Response`);
         throw error;
       }
 
       if (error instanceof Error) {
-        console.error(`[AI Provider] Gemini FAILED - Reason: ${error.message} (${responseTime} ms)`);
+        console.error(`[AI Provider] ${this.name} FAILED - Reason: ${error.message}`);
         throw new AIProviderConnectionError(this.name);
       }
 
-      console.error(`[AI Provider] Gemini FAILED - Unknown error (${responseTime} ms)`);
+      console.error(`[AI Provider] ${this.name} FAILED - Unknown error`);
       throw new AIProviderConnectionError(this.name);
     }
   }

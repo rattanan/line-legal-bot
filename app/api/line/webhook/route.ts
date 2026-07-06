@@ -10,6 +10,10 @@ type LineWebhookEvent = {
     type: string;
     text?: string;
   };
+  source?: {
+    type: string;
+    userId?: string;
+  };
 };
 
 function toLineText(text: string) {
@@ -43,8 +47,9 @@ export async function POST(req: Request) {
         }
 
         const question = event.message.text;
+        const userId = event.source?.userId;
 
-        const { reply, source } = await generateAnswer(question);
+        const { reply, source } = await generateAnswer(question, { userId });
 
         // Log the source for debugging
         console.log(`[LINE Webhook] Question: "${question}" -> Source: ${source}`);
