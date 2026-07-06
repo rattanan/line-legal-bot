@@ -14,7 +14,7 @@ interface ChatLog {
 export async function saveChatLog(log: ChatLog): Promise<void> {
   try {
     const query = `
-      INSERT INTO chat_logs (user_id, question, answer, source)
+      INSERT INTO chat_log (user_id, user_message, bot_reply, answer_source)
       VALUES (?, ?, ?, ?)
     `;
 
@@ -37,8 +37,8 @@ export async function getChatHistory(
 ): Promise<ChatLog[]> {
   try {
     const query = `
-      SELECT user_id, question, answer, source
-      FROM chat_logs
+      SELECT user_id, user_message as question, bot_reply as answer, answer_source as source
+      FROM chat_log
       WHERE user_id = ?
       ORDER BY created_at DESC
       LIMIT ?
