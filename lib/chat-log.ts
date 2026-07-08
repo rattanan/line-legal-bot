@@ -88,7 +88,7 @@ export async function getChatHistory(
     params.push(limit, offset);
 
     const query = `
-      SELECT user_id, user_message as question, bot_reply as answer, answer_source as source
+      SELECT user_id as userId, user_message as question, bot_reply as answer, answer_source as source
       FROM chat_log
       ${whereClause}
       ORDER BY ${sortColumnMap[sortBy]} ${orderDirection}
