@@ -18,12 +18,15 @@ type UserRow = AppUser & {
 };
 
 export async function ensureSeedAdminUser() {
-  const existing = await findUserByUsername("admin", true);
-  if (existing) return existing;
-
   const { salt, hash } = hashPassword("Demo@123456");
   await executeQuery(
-    "INSERT INTO users (username, full_name, password_hash, password_salt, role) VALUES (?, ?, ?, ?, ?)",
+    `INSERT INTO users (username, full_name, password_hash, password_salt, role)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       full_name = VALUES(full_name),
+       password_hash = VALUES(password_hash),
+       password_salt = VALUES(password_salt),
+       role = VALUES(role)`,
     ["admin", "Admin", hash, salt, "admin"]
   );
 
