@@ -52,7 +52,6 @@ export default function LoginPage() {
             <span className="text-xs font-medium uppercase tracking-[0.22em] text-zinc-500">Admin access</span>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Sign in to manage users</h1>
             <p className="mt-3 text-sm leading-6 text-zinc-600">
-              ใช้บัญชีเริ่มต้น `admin` กับรหัส `Demo@123456` เพื่อเข้า admin console และจัดการผู้ใช้
             </p>
           </section>
 
