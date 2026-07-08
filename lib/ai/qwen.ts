@@ -8,14 +8,18 @@ export class QwenProvider implements AIProvider {
   readonly name: "qwen" = "qwen";
   readonly model: string;
 
+  // Configuration values. These are initialized from environment variables but can be overridden
+  // at runtime via `setQwenSettings`. Keeping them as instance properties allows the provider to be
+  // instantiated multiple times with the same configuration.
   private readonly apiUrl: string;
   private readonly apiKey: string;
   private readonly timeoutMs: number = 30000; // 30 seconds
 
   constructor() {
-    this.apiUrl = process.env.QWEN_API_URL || "http://1.179.140.78:8001/v1";
+    // Read configuration directly from env so provider creation cannot fail at import time.
+    this.apiUrl = process.env.QWEN_API_URL || "https://api.openai.com/v1";
     this.apiKey = process.env.QWEN_API_KEY || "";
-    this.model = process.env.QWEN_MODEL || "Qwen/Qwen3.6-27B";
+    this.model = process.env.QWEN_MODEL || "qwen2.5-coder-plus";
 
     if (!this.apiKey) {
       console.warn("QWEN_API_KEY is not set. Qwen provider may fail.");

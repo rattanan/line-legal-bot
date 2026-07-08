@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
 import { useState } from "react";
+import Header from "../components/Header";
 
 type Message = {
   id: string;
@@ -82,13 +83,7 @@ export default function ChatTestPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-800">💬 Bot Chat Test</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Test the bot answer generation without LINE webhook
-        </p>
-      </header>
+      <Header />
 
       {/* Messages Container */}
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
