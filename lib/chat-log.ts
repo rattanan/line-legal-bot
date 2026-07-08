@@ -8,6 +8,9 @@ interface ChatLog {
   source: "mysql_faq" | "ai" | "fallback";
 }
 
+export type ChatLogSortBy = "created_at" | "user_id" | "answer_source";
+export type ChatLogSortOrder = "asc" | "desc";
+
 /**
  * Save chat interaction to MySQL database
  * @param log - Chat log entry
@@ -40,27 +43,63 @@ export async function saveChatLog(log: ChatLog): Promise<void> {
  * @returns Array of chat logs ordered by timestamp descending
  */
 export async function getChatHistory(
-  userId: string,
-  limit: number = 20
-): Promise<ChatLog[]> {
+  options: {
+    userId?: string;
+    limit?: number;
+    offset?: number;
+    sortBy?: ChatLogSortBy;
+    sortOrder?: ChatLogSortOrder;
+  } = {}
+): Promise<{ rows: ChatLog[]; total: number }> {
   const pool = getMySQLPool();
   let connection;
-  
+  const {
+    userId,
+    limit = 20,
+    offset = 0,
+    sortBy = "created_at",
+    sortOrder = "desc",
+  } = options;
+
+  const sortColumnMap: Record<ChatLogSortBy, string> = {
+    created_at: "created_at",
+    user_id: "user_id",
+    answer_source: "answer_source",
+  };
+
+  const orderDirection = sortOrder === "asc" ? "ASC" : "DESC";
+
   try {
     connection = await pool.getConnection();
+
+    const whereClause = userId ? "WHERE user_id = ?" : "";
+    const params: Array<string | number> = [];
+
+    if (userId) {
+      params.push(userId);
+    }
+
+    const [countRows] = await connection.execute(
+      `SELECT COUNT(*) as total FROM chat_log ${whereClause}`,
+      params
+    );
+    const total = Array.isArray(countRows) && countRows.length > 0 ? Number((countRows as Array<{ total: number }>)[0].total) : 0;
+
+    params.push(limit, offset);
+
     const query = `
       SELECT user_id, user_message as question, bot_reply as answer, answer_source as source
       FROM chat_log
-      WHERE user_id = ?
-      ORDER BY created_at DESC
-      LIMIT ?
+      ${whereClause}
+      ORDER BY ${sortColumnMap[sortBy]} ${orderDirection}
+      LIMIT ? OFFSET ?
     `;
-    
-    const [rows] = await connection.execute(query, [userId, limit]);
-    return rows as ChatLog[];
+
+    const [rows] = await connection.execute(query, params);
+    return { rows: rows as ChatLog[], total };
   } catch (error) {
     console.error("Error fetching chat history:", error);
-    return [];
+    return { rows: [], total: 0 };
   } finally {
     if (connection) {
       connection.release();
