@@ -26,7 +26,8 @@ export async function ensureSeedAdminUser() {
        full_name = VALUES(full_name),
        password_hash = VALUES(password_hash),
        password_salt = VALUES(password_salt),
-       role = VALUES(role)`,
+       role = VALUES(role),
+       updated_at = CURRENT_TIMESTAMP`,
     ["admin", "Admin", hash, salt, "admin"]
   );
 
@@ -66,7 +67,7 @@ export async function createUser(input: {
 }) {
   const { salt, hash } = hashPassword(input.password);
   const result = await executeQuery(
-    "INSERT INTO users (username, full_name, password_hash, password_salt, role) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO users (username, full_name, password_hash, password_salt, role, updated_at) VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
     [input.username, input.fullName, hash, salt, input.role]
   );
   if (!result.insertId) return null;
@@ -98,6 +99,8 @@ export async function updateUser(
     updates.push("password_salt = ?");
     params.push(hash, salt);
   }
+
+  updates.push("updated_at = CURRENT_TIMESTAMP");
 
   if (!updates.length) return findUserById(id);
   params.push(id);

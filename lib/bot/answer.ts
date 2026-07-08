@@ -17,23 +17,80 @@ const AI_ERROR_MESSAGE =
 async function searchFAQ(question: string): Promise<FAQ | null> {
   try {
     const faqData = await getFAQData();
+    const normalizedQuestion = normalizeText(question);
 
-    // Simple exact or partial match search
-    const matchedFAQ = faqData.find((faq) => {
-      const questionLower = question.toLowerCase().trim();
-      const faqQuestionLower = faq.question.toLowerCase().trim();
-      return (
-        questionLower === faqQuestionLower ||
-        faqQuestionLower.includes(questionLower) ||
-        questionLower.includes(faqQuestionLower)
-      );
-    });
+    let bestMatch: { faq: FAQ; score: number } | null = null;
 
-    return matchedFAQ || null;
+    for (const faq of faqData) {
+      const score = getFAQMatchScore(normalizedQuestion, normalizeText(faq.question));
+      if (!bestMatch || score > bestMatch.score) {
+        bestMatch = { faq, score };
+      }
+    }
+
+    if (bestMatch && bestMatch.score >= 0.3) {
+      return bestMatch.faq;
+    }
+
+    return null;
   } catch (error) {
     console.error("Error searching FAQ:", error);
     return null;
   }
+}
+
+function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getFAQMatchScore(question: string, faqQuestion: string): number {
+  if (!question || !faqQuestion) return 0;
+  if (question === faqQuestion) return 1;
+  if (question.includes(faqQuestion) || faqQuestion.includes(question)) return 0.9;
+
+  const questionTokens = tokenize(question);
+  const faqTokens = tokenize(faqQuestion);
+  const tokenScore = jaccardSimilarity(questionTokens, faqTokens);
+  const gramScore = jaccardSimilarity(getCharacterNGrams(question), getCharacterNGrams(faqQuestion));
+
+  return Math.max(tokenScore, gramScore);
+}
+
+function tokenize(text: string): string[] {
+  return text.split(" ").filter(Boolean);
+}
+
+function getCharacterNGrams(text: string, size = 3): string[] {
+  const compact = text.replace(/\s+/g, "");
+  if (compact.length <= size) {
+    return compact ? [compact] : [];
+  }
+
+  const grams: string[] = [];
+  for (let i = 0; i <= compact.length - size; i += 1) {
+    grams.push(compact.slice(i, i + size));
+  }
+  return grams;
+}
+
+function jaccardSimilarity(a: string[], b: string[]): number {
+  if (!a.length || !b.length) return 0;
+  const setA = new Set(a);
+  const setB = new Set(b);
+  let intersection = 0;
+
+  for (const item of setA) {
+    if (setB.has(item)) {
+      intersection += 1;
+    }
+  }
+
+  const union = new Set([...a, ...b]).size;
+  return union === 0 ? 0 : intersection / union;
 }
 
 interface GenerateAnswerOptions {
