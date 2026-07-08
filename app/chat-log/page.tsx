@@ -178,10 +178,15 @@ export default function ChatLogPage() {
                   className="rounded-[1.5rem] border border-zinc-200 bg-white p-5 shadow-[0_1px_0_rgba(255,255,255,0.8)]"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
+                        User ID
+                      </span>
                       <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">
                         {log.userId}
                       </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-zinc-950 px-3 py-1 text-xs font-medium text-white">
                         {log.source}
                       </span>
